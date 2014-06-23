@@ -80,8 +80,8 @@ module encoder_tb;
 
   // Load test vectors
   initial begin
-    $readmemb("data_after_scrambling.txt", tf_input, 0, TF_COUNT-1);
-    $readmemb("data_after_encoding.txt", tf_gold, 0, TF_COUNT-1);
+    $readmemb("vectors/data_after_scrambling.txt", tf_input, 0, TF_COUNT-1);
+    $readmemb("vectors/data_after_encoding.txt", tf_gold, 0, TF_COUNT-1);
     $dumpfile("encoder.vcd");
     $dumpvars;
   end
