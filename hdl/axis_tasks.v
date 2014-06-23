@@ -41,7 +41,7 @@ task validate(input [2*WIDTH-1:0] expected);
     if (m_tdata != expected) begin
       $display("TEST FAILED at %t\n", $realtime);
       $display("EXP: %b\nOUT: %b\n", expected, m_tdata);
-      //$finish;
+      $finish;
     end
   end
 endtask
