@@ -38,7 +38,7 @@ module encoder_tb;
       end
   endtask
 
-  task tvalid_before_tready(input [23:0] data);
+  task tvalid_before_tready(input [WIDTH:0] data);
       begin
         #(CLOCKPERIOD/4) s_tdata = data;
         s_tvalid = 1'b1;
@@ -48,7 +48,7 @@ module encoder_tb;
       end
   endtask
 
-  task tready_before_tvalid(input [23:0] data);
+  task tready_before_tvalid(input [WIDTH:0] data);
       begin
         #(CLOCKPERIOD/4) m_tready = 1'b1;
         #(CLOCKPERIOD) s_tdata = data;
@@ -58,7 +58,7 @@ module encoder_tb;
       end
   endtask
 
-  task tvalid_with_tready(input [23:0] data);
+  task tvalid_with_tready(input [WIDTH:0] data);
     begin
       #(CLOCKPERIOD/2) m_tready = 1'b1;
       s_tdata = data;
@@ -68,7 +68,7 @@ module encoder_tb;
     end
   endtask
 
-  task validate(input [47:0] expected);
+  task validate(input [2*WIDTH-1:0] expected);
     begin
       if (m_tdata != expected) begin
         $display("TEST FAILED at %t\n", $realtime);
@@ -80,8 +80,8 @@ module encoder_tb;
 
   // Load test vectors
   initial begin
-    $readmemb("ieee80211_scrambler_out.txt", tf_input, 0, TF_COUNT-1);
-    $readmemb("ieee80211_encoder_out.txt", tf_gold, 0, TF_COUNT-1);
+    $readmemb("data_after_scrambling.txt", tf_input, 0, TF_COUNT-1);
+    $readmemb("data_after_encoding.txt", tf_gold, 0, TF_COUNT-1);
     $dumpfile("encoder.vcd");
     $dumpvars;
   end
