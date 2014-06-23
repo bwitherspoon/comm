@@ -1,5 +1,5 @@
 # A list of all the verilog modules to be included in the build
-MODULES := encoder
+MODULES := encoder scrambler
 
 # Overridable if any of these tools are not in PATH
 GTKWAVE  ?= gtkwave
