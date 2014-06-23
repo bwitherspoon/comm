@@ -77,7 +77,7 @@ module scrambler_tb;
     end
     reset();
 
-    $display("All tests succeeded");
+    $display("All tests succeeded.");
     $finish;
   end
 

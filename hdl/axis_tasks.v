@@ -36,12 +36,3 @@ task tvalid_with_tready(input [WIDTH:0] data);
   end
 endtask
 
-task validate(input [2*WIDTH-1:0] expected);
-  begin
-    if (m_tdata != expected) begin
-      $display("TEST FAILED at %t\n", $realtime);
-      $display("EXP: %b\nOUT: %b\n", expected, m_tdata);
-      $finish;
-    end
-  end
-endtask
