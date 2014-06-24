@@ -28,6 +28,6 @@ clean:
 %.vcd: %.vvp
 	$(VVP) $<
 
-%.vvp: %_tb.v %.v
+%.vvp: %_tb.v $(MODULES:%=%.v)
 	$(IVERILOG) -t vvp -o $@ $^
 

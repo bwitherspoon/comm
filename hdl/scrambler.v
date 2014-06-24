@@ -12,7 +12,7 @@ module scrambler
    input s_axis_tlast,
 
    output [WIDTH-1:0] m_axis_tdata,
-   output reg m_axis_tvalid,
+   output m_axis_tvalid,
    input m_axis_tready,
    output  m_axis_tlast);
 
@@ -20,12 +20,9 @@ module scrambler
   // R(n-1) = lfsr[6] .. R(n-7) = lfsr[0]
   reg [6:0] lfsr = SEED;
 
-  reg [WIDTH-1:0] tdata_int;
-
   wire [WIDTH-1:0] fb;
-
-  wire axis_tready_int;
-  wire axis_tlast_int;
+  wire [WIDTH-1:0] axis_tdata_int;
+  wire m_handshake = m_axis_tvalid && m_axis_tready;
 
   // For generator polynomial: s^7 + s^4 + 1
   genvar i;
@@ -40,34 +37,18 @@ module scrambler
     end
   endgenerate
 
-  // We are ready whenever downstream is ready
-  assign axis_tready_int = m_axis_tready;
-  assign s_axis_tready = axis_tready_int;
+  fifo #(.WIDTH(WIDTH+1), .DEPTH(5)) fifo_int(
+    .aclk(aclk),
+    .aresetn(aresetn),
+    .s_axis_tdata({s_axis_tlast, s_axis_tdata}),
+    .s_axis_tvalid(s_axis_tvalid),
+    .s_axis_tready(s_axis_tready),
+    .m_axis_tdata({m_axis_tlast, axis_tdata_int}),
+    .m_axis_tvalid(m_axis_tvalid),
+    .m_axis_tready(m_axis_tready)
+  );
 
-  // Propagate tlast downstream
-  assign axis_tlast_int = s_axis_tlast;
-  assign m_axis_tlast = axis_tlast_int;
-
-  assign m_axis_tdata = tdata_int ^ fb;
-
-  assign m_handshake = m_axis_tvalid && m_axis_tready;
-  assign s_handshake = s_axis_tvalid && s_axis_tready;
-
-  always @(posedge aclk)
-    if (~aresetn)
-      tdata_int <= 0;
-    else if (s_handshake)
-      tdata_int <= s_axis_tdata;
-
-  always @(posedge aclk)
-    if (~aresetn)
-      m_axis_tvalid <= 0;
-    else begin
-      if (s_handshake)
-        m_axis_tvalid <= 1;
-      else if (m_handshake)
-        m_axis_tvalid <= 0;
-    end
+  assign m_axis_tdata = axis_tdata_int ^ fb;
 
   always @(posedge aclk)
     if (~aresetn)
