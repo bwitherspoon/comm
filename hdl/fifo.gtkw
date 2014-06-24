@@ -1,0 +1,49 @@
+[*]
+[*] GTKWave Analyzer v3.3.52 (w)1999-2013 BSI
+[*] Tue Jun 24 13:25:05 2014
+[*]
+[dumpfile] "/home/spoonb/repo/radio-ieee80211/hdl/fifo.vcd"
+[dumpfile_mtime] "Tue Jun 24 13:24:22 2014"
+[dumpfile_size] 8141
+[savefile] "/home/spoonb/repo/radio-ieee80211/hdl/fifo.gtkw"
+[timestart] 268
+[size] 1366 702
+[pos] 0 0
+*-4.654327 26 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] fifo_tb.
+[sst_width] 224
+[signals_width] 218
+[sst_expanded] 1
+[sst_vpaned_height] 178
+@28
+fifo_tb.clk
+fifo_tb.rst
+@200
+-
+@22
+fifo_tb.i_tdata[31:0]
+@28
+fifo_tb.i_tready
+fifo_tb.i_tvalid
+@200
+-
+@22
+fifo_tb.c_tdata[31:0]
+@28
+fifo_tb.c_tready
+fifo_tb.c_tvalid
+@200
+-
+@22
+fifo_tb.o_tdata[31:0]
+@28
+fifo_tb.o_tvalid
+fifo_tb.o_tready
+@200
+-
+@29
+fifo_tb.dut_1.state[1:0]
+@22
+fifo_tb.dut_1.addr[4:0]
+[pattern_trace] 1
+[pattern_trace] 0
