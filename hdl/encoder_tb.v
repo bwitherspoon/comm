@@ -21,14 +21,14 @@ module encoder_tb;
   reg clk = 1;
   reg rst;
 
-  reg [WIDTH-1:0] s_tdata;
-  reg [3:0] s_tuser = `RATE_6M;
-  reg s_tvalid;
-  wire s_tready;
+  reg [WIDTH-1:0] i_tdata;
+  reg [3:0] i_tuser = `RATE_6M;
+  reg i_tvalid;
+  wire i_tready;
 
-  wire [2*WIDTH-1:0] m_tdata;
-  wire m_tvalid;
-  reg m_tready;
+  wire [2*WIDTH-1:0] o_tdata;
+  wire o_tvalid;
+  reg o_tready;
 
   integer i;
 
@@ -43,63 +43,46 @@ module encoder_tb;
   encoder #(.WIDTH(WIDTH)) dut(
     .aclk(clk),
     .aresetn(rst),
-    .s_axis_tdata(s_tdata),
-    .s_axis_tvalid(s_tvalid),
-    .s_axis_tready(s_tready),
-    .s_axis_tuser(s_tuser),
+    .s_axis_tdata(i_tdata),
+    .s_axis_tvalid(i_tvalid),
+    .s_axis_tready(i_tready),
+    .s_axis_tuser(i_tuser),
     .s_axis_tlast(1'b0),
-    .m_axis_tdata(m_tdata),
-    .m_axis_tvalid(m_tvalid),
-    .m_axis_tready(m_tready),
+    .m_axis_tdata(o_tdata),
+    .m_axis_tvalid(o_tvalid),
+    .m_axis_tready(o_tready),
     .m_axis_tlast()
   );
 
   always #(CLOCKPERIOD/2) clk <= ~clk;
 
   initial begin
-    s_tvalid = 1'b0;
-    m_tready = 1'b0;
-    s_tuser = `RATE_6M;
+    // Initialize and reset
+    i_tuser = 0;
+    i_tvalid = 0;
+    o_tready = 0;
     reset();
 
-    $display("Starting SIGNAL tvalid before tready test...");
-    tvalid_before_tready(SIGNAL_INPUT);
-    if (m_tdata != SIGNAL_OUTPUT) begin
-      $display("Failed SIGNAL tvalid before tready test.");
+    $display("Starting SIGNAL encoding test...");
+    i_tuser = `RATE_6M;
+    o_tready = 1;
+    send(SIGNAL_INPUT);
+    if (o_tdata != SIGNAL_OUTPUT) begin
+      $display("Failed SIGNAL encoding test.");
       $display("EXP: %b", SIGNAL_OUTPUT);
-      $display("OUT: &b", m_tdata);
-      $finish;
-    end
-    reset();
-
-    $display("Starting SIGNAL tready before tvalid test...");
-    tready_before_tvalid(SIGNAL_INPUT);
-    if (m_tdata != SIGNAL_OUTPUT) begin
-      $display("Failed SIGNAL tready before tvalid test.");
-      $display("EXP: %b", SIGNAL_OUTPUT);
-      $display("OUT: &b", m_tdata);
-      $finish;
-    end
-    reset();
-
-    $display("Starting SIGNAL tvalid with tready test...");
-    tvalid_with_tready(SIGNAL_INPUT);
-    if (m_tdata != SIGNAL_OUTPUT) begin
-      $display("Failed SIGNAL tvalid with tready test.");
-      $display("EXP: %b", SIGNAL_OUTPUT);
-      $display("OUT: &b", m_tdata);
+      $display("GOT: %b", o_tdata);
       $finish;
     end
     reset();
 
     $display("Starting DATA encoding test...");
-    s_tuser = `RATE_9M;
+    i_tuser = `RATE_9M;
     for (i = 0; i < DATA_COUNT; i = i + 1) begin
-        tvalid_with_tready(data_input[i]);
-        if (m_tdata != data_output[i]) begin
-          $display("Failed DATA scrambling test %2d.", i);
+        send(data_input[i]);
+        if (o_tdata != data_output[i]) begin
+          $display("Failed DATA encoding test %1d.", i);
           $display("EXP: %b", data_output[i]);
-          $display("OUT: &b", m_tdata);
+          $display("GOT: %b", o_tdata);
           $finish;
       end
     end

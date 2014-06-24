@@ -16,32 +16,33 @@ module scrambler_tb;
   reg clk = 1;
   reg rst;
 
-  reg [WIDTH-1:0] s_tdata;
-  reg s_tvalid;
-  wire s_tready;
+  reg [WIDTH-1:0] i_tdata;
+  reg i_tvalid;
+  wire i_tready;
 
-  wire [WIDTH-1:0] m_tdata;
-  wire m_tvalid;
-  reg m_tready;
+  wire [WIDTH-1:0] o_tdata;
+  wire o_tvalid;
+  reg o_tready;
 
   integer i;
 
   scrambler #(.WIDTH(WIDTH), .SEED(7'b1011101)) dut(
     .aclk(clk),
     .aresetn(rst),
-    .s_axis_tdata(s_tdata),
-    .s_axis_tvalid(s_tvalid),
-    .s_axis_tready(s_tready),
+    .s_axis_tdata(i_tdata),
+    .s_axis_tvalid(i_tvalid),
+    .s_axis_tready(i_tready),
     .s_axis_tlast(1'b0),
-    .m_axis_tdata(m_tdata),
-    .m_axis_tvalid(m_tvalid),
-    .m_axis_tready(m_tready),
+    .m_axis_tdata(o_tdata),
+    .m_axis_tvalid(o_tvalid),
+    .m_axis_tready(o_tready),
     .m_axis_tlast()
   );
 
   always #(CLOCKPERIOD/2) clk <= ~clk;
 
   initial begin
+    $readmemb("vectors/scrambler_sequence_for_seed_1011101.txt", seq_output, 0, SEQ_COUNT-1);
     $readmemb("vectors/data_before_scrambling.txt", data_input, 0, DATA_COUNT-1);
     $readmemb("vectors/data_after_scrambling.txt", data_output, 0, DATA_COUNT-1);
     $dumpfile("scrambler.vcd");
@@ -49,17 +50,18 @@ module scrambler_tb;
   end
 
   initial begin
-    s_tvalid = 0;
-    m_tready = 0;
+    i_tvalid = 0;
+    o_tready = 0;
     reset();
 
     $display("Starting scrambler sequence test...");
+    o_tready = 1;
     for (i = 0; i < SEQ_COUNT; i = i + 1) begin
-      tvalid_with_tready(0);
-      if (m_tdata != seq_output[i]) begin
-        $display("Failed scrambler sequence test %2d.", i);
+      send({WIDTH{1'b0}});
+      if (o_tdata != seq_output[i]) begin
+        $display("Failed scrambler sequence test %1d:", i);
         $display("EXP: %b", seq_output[i]);
-        $display("OUT: %b", m_tdata);
+        $display("OUT: %b", o_tdata);
         $finish;
       end
     end
@@ -67,11 +69,11 @@ module scrambler_tb;
 
     $display("Starting DATA scrambling test...");
     for (i = 0; i < DATA_COUNT; i = i + 1) begin
-      tvalid_with_tready(data_input[i]);
-      if (m_tdata != data_output[i]) begin
-        $display("Failed DATA scrambling test %2d.", i);
+      send(data_input[i]);
+      if (o_tdata != data_output[i]) begin
+        $display("Failed DATA scrambling test %1d:", i);
         $display("EXP: %b", data_output[i]);
-        $display("OUT: %b", m_tdata);
+        $display("OUT: %b", o_tdata);
         $finish;
       end
     end

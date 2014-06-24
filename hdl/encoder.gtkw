@@ -1,35 +1,39 @@
 [*]
-[*] GTKWave Analyzer v3.3.59 (w)1999-2014 BSI
-[*] Mon Jun  9 22:42:11 2014
+[*] GTKWave Analyzer v3.3.52 (w)1999-2013 BSI
+[*] Tue Jun 24 19:23:34 2014
 [*]
-[dumpfile] "/home/trx/radio/ieee80211/hdl/encoder.vcd"
-[dumpfile_mtime] "Mon Jun  9 22:40:19 2014"
-[dumpfile_size] 4976
-[savefile] "/home/trx/radio/ieee80211/hdl/encoder.gtkw"
+[dumpfile] "/run/user/1000/gvfs/sftp:host=monster.cdspooner.com/home/spoonb/repo/radio-ieee80211/hdl/encoder.vcd"
+[dumpfile_mtime] "Tue Jun 24 19:21:34 2014"
+[dumpfile_size] 15212
+[savefile] "/run/user/1000/gvfs/sftp:host=monster.cdspooner.com/home/spoonb/repo/radio-ieee80211/hdl/encoder.gtkw"
 [timestart] 0
-[size] 1600 844
-[pos] -1 -28
+[size] 1366 702
+[pos] -1 -1
 *-15.261509 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] encoder_tb.
-[sst_width] 204
+[sst_width] 224
 [signals_width] 134
 [sst_expanded] 1
 [sst_vpaned_height] 239
 @28
 encoder_tb.clk
 encoder_tb.rst
+@200
+-
 @22
-encoder_tb.m_tdata[47:0]
+encoder_tb.i_tdata[23:0]
 @28
-encoder_tb.m_tready
-encoder_tb.m_tvalid
+encoder_tb.i_tvalid
+encoder_tb.i_tready
 @22
-encoder_tb.s_tdata[23:0]
+encoder_tb.i_tuser[3:0]
+@200
+-
+@22
+encoder_tb.o_tdata[47:0]
 @28
-encoder_tb.s_tready
-@22
-encoder_tb.s_tuser[3:0]
+encoder_tb.o_tvalid
 @29
-encoder_tb.s_tvalid
+encoder_tb.o_tready
 [pattern_trace] 1
 [pattern_trace] 0
