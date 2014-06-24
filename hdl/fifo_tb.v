@@ -27,14 +27,6 @@ module fifo_tb;
 
     reg [3:0] counter = 1;
 
-    task reset;
-    begin
-        rst = 0;
-        @(posedge clk);
-        #1 rst = 1;
-    end
-    endtask
-
     fifo #(.WIDTH(WIDTH)) dut_0(
         .aclk(clk),
         .aresetn(rst),
@@ -64,16 +56,24 @@ module fifo_tb;
         $dumpvars;
     end
 
+    task reset;
+    begin
+        rst = 0;
+        @(posedge clk);
+        #1 rst = 1;
+    end
+    endtask
+
     initial begin
-        // Init
+        // Initialize and reset
         i_tvalid = 0;
         o_tready = 0;
         reset();
 
-        // Leave o_tready low and observe
+        // Fill the FIFOs and wait for it propagate out
         i_tvalid = 1;
         i_tdata = 1;
-        repeat (50) @(posedge clk) begin
+        while (i_tready) @(posedge clk) begin
             if (i_handshake)
                 #1 i_tdata = i_tdata + 1;
             else
