@@ -27,7 +27,6 @@ module encoder
   reg [2*WIDTH-1:0] axis_tdata_int;
   wire [3:0] axis_tuser_int = s_axis_tuser;
   wire axis_tready_int = m_axis_tready;
-  wire axis_tlast_int = s_axis_tlast;
 
   wire m_handshake = m_axis_tvalid && m_axis_tready;
   wire s_handshake = s_axis_tvalid && s_axis_tready;
@@ -90,7 +89,7 @@ module encoder
   // AXI-Stream interface
   always @(posedge aclk)
     if (~aresetn) begin
-      m_axis_tdata <= {WIDTH{1'b0}};
+      m_axis_tdata <= {2*WIDTH{1'b0}};
       m_axis_tuser <= 4'h0;
       m_axis_tlast <= 1'b0;
       m_axis_tvalid <= 1'b0;
