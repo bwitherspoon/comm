@@ -25,24 +25,22 @@ module encoder
   reg [HISTSIZE-1:0] history = 0;
   reg [WIDTH-1:0] tdata_int;
 
-  wire [WIDTH-1:0] g0;
-  wire [WIDTH-1:0] g1;
-
   wire axis_tready_int;
   wire axis_tlast_int;
   wire [3:0] axis_tuser_int;
 
-  wire [WIDTH+HISTSIZE-1:0] operand;
-
   wire m_handshake = m_axis_tvalid && m_axis_tready;
   wire s_handshake = s_axis_tvalid && s_axis_tready;
+
+  wire [WIDTH-1:0] g0;
+  wire [WIDTH-1:0] g1;
 
   wire [2*WIDTH-1:0] hr;
   wire [2*WIDTH-1:0] tfr;
   wire [2*WIDTH-1:0] ttr;
 
   // Concatenate input data with history for the convolution
-  assign operand = {tdata_int, history};
+  wire [WIDTH+HISTSIZE-1:0] operand = {tdata_int, history};
 
   genvar i;
   generate
