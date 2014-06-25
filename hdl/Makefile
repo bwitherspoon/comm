@@ -29,5 +29,5 @@ clean:
 	$(VVP) $<
 
 %.vvp: %_tb.v $(MODULES:%=%.v)
-	$(IVERILOG) -t vvp -o $@ $^
+	$(IVERILOG) -Wall -t vvp -o $@ $^
 
