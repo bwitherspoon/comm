@@ -1,0 +1,43 @@
+[*]
+[*] GTKWave Analyzer v3.3.52 (w)1999-2013 BSI
+[*] Wed Jun 25 23:38:11 2014
+[*]
+[dumpfile] "/home/spoonb/repo/radio/ieee80211/hdl/system.vcd"
+[dumpfile_mtime] "Wed Jun 25 23:31:02 2014"
+[dumpfile_size] 12490
+[savefile] "/home/spoonb/repo/radio/ieee80211/hdl/system.gtkw"
+[timestart] 0
+[size] 1237 600
+[pos] -1 -1
+*-15.609647 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] system_tb.
+[treeopen] system_tb.system_i.
+[sst_width] 220
+[signals_width] 134
+[sst_expanded] 1
+[sst_vpaned_height] 151
+@28
+system_tb.clk
+system_tb.rst
+@200
+-
+@22
+system_tb.i_tdata[23:0]
+@28
+system_tb.i_tvalid
+system_tb.i_tready
+system_tb.i_tlast
+@22
+system_tb.i_tuser[3:0]
+@200
+-
+@22
+system_tb.o_tdata[47:0]
+@28
+system_tb.o_tvalid
+system_tb.o_tready
+system_tb.o_tlast
+@22
+system_tb.o_tuser[3:0]
+[pattern_trace] 1
+[pattern_trace] 0
