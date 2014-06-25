@@ -34,6 +34,9 @@ module encoder
 
   wire [WIDTH+HISTSIZE-1:0] operand;
 
+  wire m_handshake = m_axis_tvalid && m_axis_tready;
+  wire s_handshake = s_axis_tvalid && s_axis_tready;
+
   wire [2*WIDTH-1:0] hr;
   wire [2*WIDTH-1:0] tfr;
   wire [2*WIDTH-1:0] ttr;
@@ -83,9 +86,6 @@ module encoder
   // Propagate tuser downstream
   assign axis_tuser_int = s_axis_tuser;
   assign m_axis_tuser = axis_tuser_int;
-
-  assign m_handshake = m_axis_tvalid && m_axis_tready;
-  assign s_handshake = s_axis_tvalid && s_axis_tready;
 
   // Output mux
   always @*
