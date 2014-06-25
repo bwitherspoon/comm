@@ -14,20 +14,20 @@ module encoder
    input s_axis_tlast,
 
    output reg [2*WIDTH-1:0] m_axis_tdata,
-   output [3:0] m_axis_tuser,
+   output reg [3:0] m_axis_tuser,
    output reg m_axis_tvalid,
    input m_axis_tready,
-   output  m_axis_tlast);
+   output reg m_axis_tlast);
 
   // Constraint length determined from the generator polynomial
   localparam HISTSIZE = 6;
 
-  reg [HISTSIZE-1:0] history = 0;
-  reg [WIDTH-1:0] tdata_int;
+  reg [HISTSIZE-1:0] history = {HISTSIZE{1'b0}};
 
-  wire axis_tready_int;
-  wire axis_tlast_int;
-  wire [3:0] axis_tuser_int;
+  reg [2*WIDTH-1:0] axis_tdata_int;
+  wire [3:0] axis_tuser_int = s_axis_tuser;
+  wire axis_tready_int = m_axis_tready;
+  wire axis_tlast_int = s_axis_tlast;
 
   wire m_handshake = m_axis_tvalid && m_axis_tready;
   wire s_handshake = s_axis_tvalid && s_axis_tready;
@@ -40,7 +40,7 @@ module encoder
   wire [2*WIDTH-1:0] ttr;
 
   // Concatenate input data with history for the convolution
-  wire [WIDTH+HISTSIZE-1:0] operand = {tdata_int, history};
+  wire [WIDTH+HISTSIZE-1:0] operand = {s_axis_tdata, history};
 
   genvar i;
   generate
@@ -74,49 +74,37 @@ module encoder
   assign tfr[2*WIDTH-1:4*WIDTH/3] = 0;
 
   // We are ready whenever downstream is ready
-  assign axis_tready_int = m_axis_tready;
   assign s_axis_tready = axis_tready_int;
-
-  // Propagate tlast downstream
-  assign axis_tlast_int = s_axis_tlast;
-  assign m_axis_tlast = axis_tlast_int;
-
-  // Propagate tuser downstream
-  assign axis_tuser_int = s_axis_tuser;
-  assign m_axis_tuser = axis_tuser_int;
 
   // Output mux
   always @*
     case (axis_tuser_int)
       `RATE_9M, `RATE_18M, `RATE_36M, `RATE_54M:
-        m_axis_tdata = tfr;
+        axis_tdata_int = tfr;
       `RATE_48M:
-        m_axis_tdata = ttr;
+        axis_tdata_int = ttr;
       default:
-        m_axis_tdata = hr;
+        axis_tdata_int = hr;
     endcase
 
+  // AXI-Stream interface
   always @(posedge aclk)
-    if (~aresetn)
-      tdata_int <= 0;
-    else if (s_handshake)
-      tdata_int <= s_axis_tdata;
-
-  always @(posedge aclk)
-    if (~aresetn)
+    if (~aresetn) begin
+      m_axis_tdata <= {WIDTH{1'b0}};
+      m_axis_tuser <= 4'h0;
+      m_axis_tlast <= 1'b0;
       m_axis_tvalid <= 1'b0;
-    else begin
-      if (s_handshake)
-        m_axis_tvalid <= 1'b1;
-      else if (m_handshake)
-        m_axis_tvalid <= 1'b0;
+      history <= {HISTSIZE{1'b0}};
     end
-
-  always @(posedge aclk)
-    if (~aresetn)
-      history <= 0;
+    else if (s_handshake) begin
+      m_axis_tdata <= axis_tdata_int;
+      m_axis_tuser <= s_axis_tuser;
+      m_axis_tlast <= s_axis_tlast;
+      m_axis_tvalid <= 1'b1;
+      history <= s_axis_tdata[WIDTH-1:WIDTH-HISTSIZE];
+    end
     else if (m_handshake)
-      history <= tdata_int[WIDTH-1:WIDTH-HISTSIZE];
+      m_axis_tvalid <= 1'b0;
 
 endmodule
 

@@ -1,11 +1,11 @@
 [*]
 [*] GTKWave Analyzer v3.3.52 (w)1999-2013 BSI
-[*] Tue Jun 24 19:23:34 2014
+[*] Wed Jun 25 22:28:33 2014
 [*]
-[dumpfile] "/run/user/1000/gvfs/sftp:host=monster.cdspooner.com/home/spoonb/repo/radio-ieee80211/hdl/encoder.vcd"
-[dumpfile_mtime] "Tue Jun 24 19:21:34 2014"
-[dumpfile_size] 15212
-[savefile] "/run/user/1000/gvfs/sftp:host=monster.cdspooner.com/home/spoonb/repo/radio-ieee80211/hdl/encoder.gtkw"
+[dumpfile] "/home/spoonb/repo/radio/ieee80211/hdl/encoder.vcd"
+[dumpfile_mtime] "Wed Jun 25 22:27:59 2014"
+[dumpfile_size] 15334
+[savefile] "/home/spoonb/repo/radio/ieee80211/hdl/encoder.gtkw"
 [timestart] 0
 [size] 1366 702
 [pos] -1 -1
@@ -27,13 +27,18 @@ encoder_tb.i_tvalid
 encoder_tb.i_tready
 @22
 encoder_tb.i_tuser[3:0]
+@28
+encoder_tb.i_tlast
 @200
 -
 @22
 encoder_tb.o_tdata[47:0]
 @28
 encoder_tb.o_tvalid
-@29
 encoder_tb.o_tready
+@22
+encoder_tb.o_tuser[3:0]
+@29
+encoder_tb.o_tlast
 [pattern_trace] 1
 [pattern_trace] 0

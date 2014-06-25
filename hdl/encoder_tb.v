@@ -25,10 +25,13 @@ module encoder_tb;
   reg [3:0] i_tuser = `RATE_6M;
   reg i_tvalid;
   wire i_tready;
+  reg i_tlast;
 
   wire [2*WIDTH-1:0] o_tdata;
+  wire [3:0] o_tuser;
   wire o_tvalid;
   reg o_tready;
+  wire o_tlast;
 
   integer i;
 
@@ -47,11 +50,12 @@ module encoder_tb;
     .s_axis_tvalid(i_tvalid),
     .s_axis_tready(i_tready),
     .s_axis_tuser(i_tuser),
-    .s_axis_tlast(1'b0),
+    .s_axis_tlast(i_tlast),
     .m_axis_tdata(o_tdata),
     .m_axis_tvalid(o_tvalid),
+    .m_axis_tuser(o_tuser),
     .m_axis_tready(o_tready),
-    .m_axis_tlast()
+    .m_axis_tlast(o_tlast)
   );
 
   always #(CLOCKPERIOD/2) clk <= ~clk;
@@ -60,6 +64,7 @@ module encoder_tb;
     // Initialize and reset
     i_tuser = 0;
     i_tvalid = 0;
+    i_tlast = 0;
     o_tready = 0;
     reset();
 
@@ -77,6 +82,7 @@ module encoder_tb;
 
     $display("Starting DATA encoding test...");
     i_tuser = `RATE_9M;
+    i_tlast = 1;
     for (i = 0; i < DATA_COUNT; i = i + 1) begin
         send(data_input[i]);
         if (o_tdata != data_output[i]) begin
