@@ -4,6 +4,7 @@ module fifo_tb;
 
     localparam CLOCKPERIOD = 10;
     localparam WIDTH = 32;
+    localparam DEPTH = 5;
     localparam TEST_COUNT = 10;
 
     reg clk = 1;
@@ -27,7 +28,7 @@ module fifo_tb;
 
     reg [3:0] counter = 1;
 
-    fifo #(.WIDTH(WIDTH)) dut_0(
+    fifo #(.WIDTH(WIDTH), .DEPTH(DEPTH)) dut_0(
         .aclk(clk),
         .aresetn(rst),
         .s_axis_tdata(i_tdata),
@@ -38,7 +39,7 @@ module fifo_tb;
         .m_axis_tready(c_tready)
     );
 
-    fifo #(.WIDTH(WIDTH)) dut_1(
+    fifo #(.WIDTH(WIDTH), .DEPTH(DEPTH)) dut_1(
         .aclk(clk),
         .aresetn(rst),
         .s_axis_tdata(c_tdata),
