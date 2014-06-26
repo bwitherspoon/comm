@@ -4,15 +4,20 @@
 
 module system_tb;
 
+    `include "axis_tasks.v"
+
     localparam WIDTH = 24;
     localparam DELAY = 2;
+
+    localparam SEND_WIDTH = WIDTH;
+    localparam RECV_WIDTH = 2*WIDTH;
+
     localparam CLOCKPERIOD = 20;
     localparam DATA_COUNT = 10;
 
-    `include "axis_tasks.v"
-
     reg [WIDTH-1:0] data_input [DATA_COUNT-1:0];
     reg [2*WIDTH-1:0] data_output [DATA_COUNT-1:0];
+    reg [2*WIDTH-1:0] data_buffer [DATA_COUNT-1:0];
 
     reg clk = 1;
     reg rst;
@@ -28,8 +33,6 @@ module system_tb;
     reg o_tready;
     wire o_tlast;
     wire [3:0] o_tuser;
-
-    integer i;
 
     system #(.WIDTH(WIDTH)) system_i(
         .aclk(clk),
@@ -55,6 +58,8 @@ module system_tb;
         $dumpvars;
     end
 
+    integer i, j;
+
     initial begin
         i_tvalid = 0;
         i_tlast = 0;
@@ -62,16 +67,30 @@ module system_tb;
         o_tready = 0;
         reset();
 
-        o_tready = 1;
-        for (i = 0; i < DATA_COUNT; i = i + 1) begin
-            send(data_input[i]);
-            repeat (DELAY-1) @(posedge clk) #1;
-            if (o_tdata != data_output[i]) begin
-                $display("EXP: %b", data_output[i]);
-                $display("GOT: %b", o_tdata);
-                $display;
+        #(CLOCKPERIOD/4) o_tready = 1;
+        fork
+            begin
+                for (i = 0; i < DATA_COUNT; i = i + 1)
+                    send(data_input[i]);
             end
-        end
+            begin
+                for (j = 0; j < DATA_COUNT; j = j + 1)
+                    recv(data_buffer[j]);
+            end
+        join
+
+        if (i != j)
+            $display("ERROR: sent %d, received, %d", i, j);
+
+        for (i = 0; i < DATA_COUNT; i = i + 1)
+            if (data_buffer[i] != data_output[i]) begin
+                $display("ERROR: item %d", i);
+                $display("EXP: %b", data_output[i]);
+                $display("GOT: %b", data_buffer[i]);
+                $finish;
+            end
+
+        $display("All tests succeeded");
         $finish;
     end
 endmodule

@@ -6,12 +6,30 @@ task reset;
     end
 endtask
 
-task send(input [WIDTH-1:0] data);
-  begin
-    i_tdata = data;
-    i_tvalid = 1'b1;
-    @(posedge clk);
-    #1 i_tvalid = 1'b0;
-  end
+task automatic send(input [SEND_WIDTH-1:0] data);
+    begin
+        i_tdata = data;
+        i_tvalid = 1'b1;
+        repeat (10) @(posedge clk)
+            if (i_tready == 1'b1) begin
+                #1 i_tvalid = 1'b0;
+                disable send;
+            end
+        $display("ERROR: send() timeout");
+        $finish;
+    end
 endtask
 
+task automatic recv(output [RECV_WIDTH-1:0] mem);
+    begin
+        o_tready = 1'b1;
+        repeat (10) @(posedge clk)
+            if (o_tvalid == 1'b1) begin
+                mem = o_tdata;
+                #1 o_tready = 1'b0;
+                disable recv;
+            end
+        $display("ERROR: recv() timeout");
+        $finish;
+    end
+endtask

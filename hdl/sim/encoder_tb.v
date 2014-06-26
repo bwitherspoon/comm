@@ -7,11 +7,15 @@
 
 module encoder_tb;
 
+  `include "axis_tasks.v"
+
   localparam WIDTH = 24;
+
+  localparam SEND_WIDTH = WIDTH;
+  localparam RECV_WIDTH = 2*WIDTH;
+
   localparam CLOCKPERIOD = 20;
   localparam DATA_COUNT = 10;
-
-  `include "axis_tasks.v"
 
   // Half rate test vectors
   localparam SIGNAL_INPUT = 24'h000c8d;

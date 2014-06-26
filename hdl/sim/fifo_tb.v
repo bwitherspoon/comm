@@ -2,9 +2,15 @@
 
 module fifo_tb;
 
-    localparam CLOCKPERIOD = 10;
+    `include "axis_tasks.v"
+
     localparam WIDTH = 32;
     localparam DEPTH = 5;
+
+    localparam SEND_WIDTH = WIDTH;
+    localparam RECV_WIDTH = WIDTH;
+
+    localparam CLOCKPERIOD = 10;
     localparam TEST_COUNT = 10;
 
     reg clk = 1;
@@ -22,11 +28,7 @@ module fifo_tb;
     wire o_tvalid;
     reg o_tready;
 
-    wire i_handshake = i_tvalid & i_tready;
-    wire c_handshake = c_tvalid & c_tready;
-    wire o_handshake = o_tvalid & o_tready;
-
-    reg [3:0] counter = 1;
+    reg [WIDTH-1:0] out;
 
     fifo #(.WIDTH(WIDTH), .DEPTH(DEPTH)) dut_0(
         .aclk(clk),
@@ -52,38 +54,36 @@ module fifo_tb;
 
     always #(CLOCKPERIOD/2) clk = ~clk;
 
+    integer i, j;
+
     initial begin
         $dumpfile("fifo.vcd");
         $dumpvars;
-    end
 
-    task reset;
-    begin
-        rst = 0;
-        @(posedge clk);
-        #1 rst = 1;
-    end
-    endtask
-
-    initial begin
         // Initialize and reset
         i_tvalid = 0;
         o_tready = 0;
         reset();
 
         // Fill the FIFOs and wait for it propagate out
-        i_tvalid = 1;
-        i_tdata = 1;
-        while (i_tready) @(posedge clk) begin
-            if (i_handshake)
-                #1 i_tdata = i_tdata + 1;
-            else
-                $display("No handshake at %2d...", i_tdata);
+        for (i = 0; i_tready == 1'b1; i = i + 1) begin
+            send(i);
         end
-        i_tvalid = 0;
-        o_tready = 1;
-        @(negedge o_tvalid);
 
+        for (j = 0; o_tvalid == 1'b1; j = j + 1) begin
+            recv(out);
+            if (out != j) begin
+                $display("ERROR: Expected %2d, Got %2d", j, out);
+                $finish;
+            end
+        end
+
+        if (i != j) begin
+            $display("ERROR: Sent %2d, Received %2d", i, j);
+            $finish;
+        end
+
+        $display("All tests succeeded.");
         $finish;
     end
 

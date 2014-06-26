@@ -2,12 +2,15 @@
 
 module scrambler_tb;
 
-  localparam CLOCKPERIOD = 20;
+  `include "axis_tasks.v"
+
   localparam WIDTH = 24;
+  localparam SEND_WIDTH = WIDTH;
+  localparam RECV_WIDTH = WIDTH;
+
+  localparam CLOCKPERIOD = 20;
   localparam DATA_COUNT = 10;
   localparam SEQ_COUNT = 3;
-
-  `include "axis_tasks.v"
 
   reg [WIDTH-1:0] data_input [DATA_COUNT-1:0];
   reg [WIDTH-1:0] data_output [DATA_COUNT-1:0];
