@@ -24,8 +24,7 @@ module encoder
 
   reg [HISTSIZE-1:0] history = {HISTSIZE{1'b0}};
 
-  reg [2*WIDTH-1:0] axis_tdata_int;
-  wire [3:0] axis_tuser_int = s_axis_tuser;
+  reg [2*WIDTH-1:0] m_axis_tdata_int;
   wire axis_tready_int = m_axis_tready;
 
   wire m_handshake = m_axis_tvalid && m_axis_tready;
@@ -77,13 +76,13 @@ module encoder
 
   // Output mux
   always @*
-    case (axis_tuser_int)
+    case (s_axis_tuser)
       `RATE_9M, `RATE_18M, `RATE_36M, `RATE_54M:
-        axis_tdata_int = tfr;
+        m_axis_tdata_int = tfr;
       `RATE_48M:
-        axis_tdata_int = ttr;
+        m_axis_tdata_int = ttr;
       default:
-        axis_tdata_int = hr;
+        m_axis_tdata_int = hr;
     endcase
 
   // AXI-Stream interface
@@ -96,7 +95,7 @@ module encoder
       history <= {HISTSIZE{1'b0}};
     end
     else if (s_handshake) begin
-      m_axis_tdata <= axis_tdata_int;
+      m_axis_tdata <= m_axis_tdata_int;
       m_axis_tuser <= s_axis_tuser;
       m_axis_tlast <= s_axis_tlast;
       m_axis_tvalid <= 1'b1;
