@@ -49,8 +49,8 @@ module system_tb;
     always #(CLOCKPERIOD/2) clk <= ~clk;
 
     initial begin
-        $readmemb("vectors/data_before_scrambling.txt", data_input, 0, DATA_COUNT-1);
-        $readmemb("vectors/data_after_encoding.txt", data_output, 0, DATA_COUNT-1);
+        $readmemb("data_before_scrambling.txt", data_input, 0, DATA_COUNT-1);
+        $readmemb("data_after_encoding.txt", data_output, 0, DATA_COUNT-1);
         $dumpfile("system.vcd");
         $dumpvars;
     end

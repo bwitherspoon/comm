@@ -42,9 +42,9 @@ module scrambler_tb;
   always #(CLOCKPERIOD/2) clk <= ~clk;
 
   initial begin
-    $readmemb("vectors/scrambler_sequence_for_seed_1011101.txt", seq_output, 0, SEQ_COUNT-1);
-    $readmemb("vectors/data_before_scrambling.txt", data_input, 0, DATA_COUNT-1);
-    $readmemb("vectors/data_after_scrambling.txt", data_output, 0, DATA_COUNT-1);
+    $readmemb("scrambler_sequence_for_seed_1011101.txt", seq_output, 0, SEQ_COUNT-1);
+    $readmemb("data_before_scrambling.txt", data_input, 0, DATA_COUNT-1);
+    $readmemb("data_after_scrambling.txt", data_output, 0, DATA_COUNT-1);
     $dumpfile("scrambler.vcd");
     $dumpvars;
   end

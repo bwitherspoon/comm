@@ -2,6 +2,9 @@
 
 `include "ieee80211_defs.v"
 
+`define INPUT_VECTOR  "data_after_scrambling.txt"
+`define OUTPUT_VECTOR "data_after_encoding.txt"
+
 module encoder_tb;
 
   localparam WIDTH = 24;
@@ -37,8 +40,8 @@ module encoder_tb;
 
   // Load test vectors
   initial begin
-    $readmemb("vectors/data_after_scrambling.txt", data_input, 0, DATA_COUNT-1);
-    $readmemb("vectors/data_after_encoding.txt", data_output, 0, DATA_COUNT-1);
+    $readmemb(`INPUT_VECTOR, data_input, 0, DATA_COUNT-1);
+    $readmemb(`OUTPUT_VECTOR, data_output, 0, DATA_COUNT-1);
     $dumpfile("encoder.vcd");
     $dumpvars;
   end
