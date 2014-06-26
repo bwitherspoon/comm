@@ -31,7 +31,9 @@ clean:
 	-$(RM) $(MODULES:%=$(SIMDIR)/%.vcd) $(MODULES:%=$(SIMDIR)/%.vvp)
 
 %.vcd: %.vvp
+	@echo
 	cd $(dir $<) && $(VVP) $(notdir $<)
+	@echo
 
 %.vvp: %_tb.v $(MODULES:%=%.v)
 	$(IVERILOG) -Wall -t vvp -I$(LIBDIR) -o $@ $^
