@@ -1,11 +1,11 @@
 [*]
 [*] GTKWave Analyzer v3.3.52 (w)1999-2013 BSI
-[*] Tue Jun 24 19:19:16 2014
+[*] Fri Jun 27 04:04:19 2014
 [*]
-[dumpfile] "/run/user/1000/gvfs/sftp:host=monster.cdspooner.com/home/spoonb/repo/radio-ieee80211/hdl/scrambler.vcd"
-[dumpfile_mtime] "Tue Jun 24 19:18:08 2014"
-[dumpfile_size] 9293
-[savefile] "/run/user/1000/gvfs/sftp:host=monster.cdspooner.com/home/spoonb/repo/radio-ieee80211/hdl/scrambler.gtkw"
+[dumpfile] "/home/spoonb/repo/radio/ieee80211/hdl/sim/scrambler.vcd"
+[dumpfile_mtime] "Fri Jun 27 04:04:02 2014"
+[dumpfile_size] 16063
+[savefile] "/home/spoonb/repo/radio/ieee80211/hdl/sim/scrambler.gtkw"
 [timestart] 0
 [size] 1366 702
 [pos] -1 -1
@@ -25,14 +25,17 @@ scrambler_tb.i_tdata[23:0]
 @28
 scrambler_tb.i_tvalid
 scrambler_tb.i_tready
+@22
+scrambler_tb.i_tuser[3:0]
 @20000
 -
 @22
 scrambler_tb.o_tdata[23:0]
 @28
 scrambler_tb.o_tvalid
-@29
 scrambler_tb.o_tready
+@23
+scrambler_tb.o_tuser[3:0]
 @20000
 -
 @28

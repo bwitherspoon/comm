@@ -1,7 +1,5 @@
 `timescale 1ns / 1ps
 
-`include "ieee80211_defs.v"
-
 module system
   #(parameter WIDTH = 24)
    (input aclk,
@@ -25,7 +23,7 @@ module system
     wire s2e_tvalid;
     wire s2e_tready;
     wire s2e_tlast;
-    //wire s2e_tuser;
+    wire [3:0] s2e_tuser;
 
     scrambler #(.WIDTH(WIDTH), .SEED(SEED)) scrambler_i(
         .aclk(aclk),
@@ -33,10 +31,12 @@ module system
         .s_axis_tdata(s_axis_tdata),
         .s_axis_tvalid(s_axis_tvalid),
         .s_axis_tready(s_axis_tready),
+        .s_axis_tuser(s_axis_tuser),
         .s_axis_tlast(s_axis_tlast),
         .m_axis_tdata(s2e_tdata),
         .m_axis_tvalid(s2e_tvalid),
         .m_axis_tready(s2e_tready),
+        .m_axis_tuser(s2e_tuser),
         .m_axis_tlast(s2e_tlast)
     );
 
@@ -46,12 +46,12 @@ module system
         .s_axis_tdata(s2e_tdata),
         .s_axis_tvalid(s2e_tvalid),
         .s_axis_tready(s2e_tready),
-        .s_axis_tuser(`RATE_9M),
+        .s_axis_tuser(s2e_tuser),
         .s_axis_tlast(s2e_tlast),
         .m_axis_tdata(m_axis_tdata),
         .m_axis_tvalid(m_axis_tvalid),
         .m_axis_tready(m_axis_tready),
-        .m_axis_tlast(m_axis_tlast),
-        .m_axis_tuser(m_axis_tuser)
+        .m_axis_tuser(m_axis_tuser),
+        .m_axis_tlast(m_axis_tlast)
     );
 endmodule

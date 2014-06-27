@@ -63,7 +63,7 @@ module system_tb;
     initial begin
         i_tvalid = 0;
         i_tlast = 0;
-        i_tuser = 0;
+        i_tuser = `RATE_9M;
         o_tready = 0;
         reset();
 

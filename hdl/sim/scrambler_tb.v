@@ -20,12 +20,16 @@ module scrambler_tb;
   reg rst;
 
   reg [WIDTH-1:0] i_tdata;
+  reg [3:0] i_tuser;
   reg i_tvalid;
   wire i_tready;
 
   wire [WIDTH-1:0] o_tdata;
+  wire [3:0] o_tuser;
   wire o_tvalid;
   reg o_tready;
+
+  reg [RECV_WIDTH-1:0] out;
 
   integer i;
 
@@ -33,10 +37,12 @@ module scrambler_tb;
     .aclk(clk),
     .aresetn(rst),
     .s_axis_tdata(i_tdata),
+    .s_axis_tuser(i_tuser),
     .s_axis_tvalid(i_tvalid),
     .s_axis_tready(i_tready),
     .s_axis_tlast(1'b0),
     .m_axis_tdata(o_tdata),
+    .m_axis_tuser(o_tuser),
     .m_axis_tvalid(o_tvalid),
     .m_axis_tready(o_tready),
     .m_axis_tlast()
@@ -54,17 +60,26 @@ module scrambler_tb;
 
   initial begin
     i_tvalid = 0;
+    i_tuser = 0;
     o_tready = 0;
     reset();
 
     $display("Starting scrambler sequence test...");
     o_tready = 1;
     for (i = 0; i < SEQ_COUNT; i = i + 1) begin
+      i_tuser = i;
       send({WIDTH{1'b0}});
-      if (o_tdata != seq_output[i]) begin
+      recv(out);
+      if (out != seq_output[i]) begin
         $display("Failed scrambler sequence test %1d:", i);
         $display("EXP: %b", seq_output[i]);
         $display("OUT: %b", o_tdata);
+        $finish;
+      end
+      if (o_tuser != i) begin
+        $display("Failed DATA scrambling test %1d:", i);
+        $display("TUSER EXP: %b", i);
+        $display("TUSER GOT: %b", o_tuser);
         $finish;
       end
     end
@@ -72,11 +87,19 @@ module scrambler_tb;
 
     $display("Starting DATA scrambling test...");
     for (i = 0; i < DATA_COUNT; i = i + 1) begin
+      i_tuser = i;
       send(data_input[i]);
-      if (o_tdata != data_output[i]) begin
+      recv(out);
+      if (out != data_output[i]) begin
         $display("Failed DATA scrambling test %1d:", i);
-        $display("EXP: %b", data_output[i]);
-        $display("OUT: %b", o_tdata);
+        $display("TDATA EXP: %b", data_output[i]);
+        $display("TDATA GOT: %b", o_tdata);
+        $finish;
+      end
+      if (o_tuser != i) begin
+        $display("Failed DATA scrambling test %1d:", i);
+        $display("TUSER EXP: %b", i);
+        $display("TUSER GOT: %b", o_tuser);
         $finish;
       end
     end

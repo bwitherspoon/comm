@@ -7,11 +7,13 @@ module scrambler
    input aresetn,
 
    input [WIDTH-1:0] s_axis_tdata,
+   input [3:0] s_axis_tuser,
    input s_axis_tvalid,
    output s_axis_tready,
    input s_axis_tlast,
 
    output reg [WIDTH-1:0] m_axis_tdata,
+   output reg [3:0] m_axis_tuser,
    output reg m_axis_tvalid,
    input m_axis_tready,
    output reg m_axis_tlast);
@@ -44,11 +46,13 @@ module scrambler
   always @(posedge aclk)
     if (~aresetn) begin
       m_axis_tdata <= {WIDTH{1'b0}};
+      m_axis_tuser <= 4'h0;
       m_axis_tlast <= 1'b0;
       m_axis_tvalid <= 1'b0;
     end
     else if (s_handshake) begin
       m_axis_tdata <= s_axis_tdata ^ fb;
+      m_axis_tuser <= s_axis_tuser;
       m_axis_tlast <= s_axis_tlast;
       m_axis_tvalid <= 1'b1;
     end
