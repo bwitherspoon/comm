@@ -23,11 +23,13 @@ module scrambler_tb;
   reg [3:0] i_tuser;
   reg i_tvalid;
   wire i_tready;
+  reg i_tlast;
 
   wire [WIDTH-1:0] o_tdata;
   wire [3:0] o_tuser;
   wire o_tvalid;
   reg o_tready;
+  wire o_tlast;
 
   reg [RECV_WIDTH-1:0] out;
 
@@ -40,12 +42,12 @@ module scrambler_tb;
     .s_axis_tuser(i_tuser),
     .s_axis_tvalid(i_tvalid),
     .s_axis_tready(i_tready),
-    .s_axis_tlast(1'b0),
+    .s_axis_tlast(i_tlast),
     .m_axis_tdata(o_tdata),
     .m_axis_tuser(o_tuser),
     .m_axis_tvalid(o_tvalid),
     .m_axis_tready(o_tready),
-    .m_axis_tlast()
+    .m_axis_tlast(o_tlast)
   );
 
   always #(CLOCKPERIOD/2) clk <= ~clk;
@@ -61,6 +63,7 @@ module scrambler_tb;
   initial begin
     i_tvalid = 0;
     i_tuser = 0;
+    i_tlast = 0;
     o_tready = 0;
     reset();
 
@@ -104,6 +107,21 @@ module scrambler_tb;
       end
     end
     reset();
+
+    // Test tlast
+    i_tuser = 0;
+    i_tlast = 0;
+    send(data_input[0]);
+    recv(out);
+    i_tlast = 1;
+    send(data_input[1]);
+    recv(out);
+    if (out != (data_output[1] & {{7{1'b0}}, {WIDTH-7{1'b1}}})) begin
+        $display("Failed TLAST test");
+        $display("TDATA EXP: %b", data_output[1] & {{7{1'b0}}, {WIDTH-7{1'b1}}});
+        $display("TDATA GOT: %b", out);
+        $finish;
+    end
 
     $display("All tests succeeded.");
     $finish;
