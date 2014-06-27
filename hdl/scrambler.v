@@ -11,23 +11,26 @@ module scrambler
    output s_axis_tready,
    input s_axis_tlast,
 
-   output [WIDTH-1:0] m_axis_tdata,
-   output m_axis_tvalid,
+   output reg [WIDTH-1:0] m_axis_tdata,
+   output reg m_axis_tvalid,
    input m_axis_tready,
-   output  m_axis_tlast);
+   output reg m_axis_tlast);
 
-  // Constraint length determined from the polynomial
-  // R(n-1) = lfsr[6] .. R(n-7) = lfsr[0]
+  // We are ready whenever downstream is ready
+  wire axis_tready_int = m_axis_tready;
+  assign s_axis_tready = axis_tready_int;
+
+  wire m_handshake = m_axis_tvalid && axis_tready_int;
+  wire s_handshake = s_axis_tvalid && axis_tready_int;
+
+  // LFSR with generator polynomial: s^7 + s^4 + 1
+  // Note: R(n-1) = lfsr[6] .. R(n-7) = lfsr[0]
   reg [6:0] lfsr = SEED;
-
   wire [WIDTH-1:0] fb;
-  wire [WIDTH-1:0] axis_tdata_int;
-  wire m_handshake = m_axis_tvalid && m_axis_tready;
 
-  // For generator polynomial: s^7 + s^4 + 1
   genvar i;
   generate
-    for (i = 0; i < WIDTH; i = i + 1) begin : gen_fb
+    for (i = 0; i < WIDTH; i = i + 1) begin : gen_feedback
       if (i < 4)
         assign fb[i] = lfsr[i+3] ^ lfsr[i];
       else if (i < 7)
@@ -37,23 +40,26 @@ module scrambler
     end
   endgenerate
 
-  fifo #(.WIDTH(WIDTH+1), .DEPTH(5)) fifo_int(
-    .aclk(aclk),
-    .aresetn(aresetn),
-    .s_axis_tdata({s_axis_tlast, s_axis_tdata}),
-    .s_axis_tvalid(s_axis_tvalid),
-    .s_axis_tready(s_axis_tready),
-    .m_axis_tdata({m_axis_tlast, axis_tdata_int}),
-    .m_axis_tvalid(m_axis_tvalid),
-    .m_axis_tready(m_axis_tready)
-  );
+  // AXI-Stream Interface
+  always @(posedge aclk)
+    if (~aresetn) begin
+      m_axis_tdata <= {WIDTH{1'b0}};
+      m_axis_tlast <= 1'b0;
+      m_axis_tvalid <= 1'b0;
+    end
+    else if (s_handshake) begin
+      m_axis_tdata <= s_axis_tdata ^ fb;
+      m_axis_tlast <= s_axis_tlast;
+      m_axis_tvalid <= 1'b1;
+    end
+    else if (m_handshake)
+      m_axis_tvalid <= 1'b0;
 
-  assign m_axis_tdata = axis_tdata_int ^ fb;
-
+  // LFSR
   always @(posedge aclk)
     if (~aresetn)
       lfsr <= SEED;
-    else if (m_handshake)
+    else if (s_handshake)
       lfsr <= fb[WIDTH-1:WIDTH-7];
 
 endmodule
