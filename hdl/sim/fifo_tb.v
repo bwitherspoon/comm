@@ -70,6 +70,7 @@ module fifo_tb;
             send(i);
         end
 
+        o_tready = 1;
         for (j = 0; o_tvalid == 1'b1; j = j + 1) begin
             recv(out);
             if (out != j) begin
