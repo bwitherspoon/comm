@@ -24,8 +24,6 @@ module scrambler
   wire axis_tready_int = m_axis_tready;
   assign s_axis_tready = axis_tready_int;
 
-  wire [WIDTH-1:0] m_axis_tdata_int;
-
   wire m_handshake = m_axis_tvalid && axis_tready_int;
   wire s_handshake = s_axis_tvalid && axis_tready_int;
 
@@ -46,9 +44,6 @@ module scrambler
     end
   endgenerate
 
-  assign m_axis_tdata_int =
-      (s_axis_tlast) ? (s_axis_tdata ^ fb) & TAIL_MASK : s_axis_tdata ^ fb;
-
   // AXI-Stream Interface
   always @(posedge aclk)
     if (~aresetn) begin
@@ -58,7 +53,10 @@ module scrambler
       m_axis_tvalid <= 1'b0;
     end
     else if (s_handshake) begin
-      m_axis_tdata <= m_axis_tdata_int;
+      if (s_axis_tlast)
+        m_axis_tdata <= (s_axis_tdata ^ fb) & TAIL_MASK;
+      else
+        m_axis_tdata <= s_axis_tdata ^ fb;
       m_axis_tuser <= s_axis_tuser;
       m_axis_tlast <= s_axis_tlast;
       m_axis_tvalid <= 1'b1;
