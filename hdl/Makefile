@@ -1,5 +1,5 @@
 # A list of all the verilog modules to be included in the build
-MODULES = system encoder scrambler fifo
+MODULES = system encoder scrambler fifo interleaver
 
 LIBDIR ?= .
 SIMDIR ?= sim
