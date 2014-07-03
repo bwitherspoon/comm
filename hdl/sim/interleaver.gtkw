@@ -1,21 +1,21 @@
 [*]
 [*] GTKWave Analyzer v3.3.52 (w)1999-2013 BSI
-[*] Thu Jul  3 05:06:48 2014
+[*] Thu Jul  3 18:26:41 2014
 [*]
 [dumpfile] "/home/spoonb/repo/radio/ieee80211/hdl/sim/interleaver.vcd"
-[dumpfile_mtime] "Thu Jul  3 05:03:31 2014"
-[dumpfile_size] 58567
+[dumpfile_mtime] "Thu Jul  3 18:18:14 2014"
+[dumpfile_size] 63816
 [savefile] "/home/spoonb/repo/radio/ieee80211/hdl/sim/interleaver.gtkw"
 [timestart] 2196000
 [size] 1366 702
-[pos] 0 27
-*-18.366415 2419000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] 1672 19
+*-18.366415 2740000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] interleaver_tb.
 [treeopen] interleaver_tb.dut.
 [sst_width] 224
 [signals_width] 327
 [sst_expanded] 1
-[sst_vpaned_height] 178
+[sst_vpaned_height] 286
 @28
 interleaver_tb.clk
 interleaver_tb.rst
@@ -42,35 +42,38 @@ interleaver_tb.o_tlast
 @28
 interleaver_tb.dut.block_end
 @22
+interleaver_tb.dut.inter_bpsk[47:0]
+interleaver_tb.dut.inter_qpsk[95:0]
+interleaver_tb.dut.inter_qam16[191:0]
+interleaver_tb.dut.inter_qam64[287:0]
+interleaver_tb.dut.block_rate[3:0]
 interleaver_tb.dut.block_net[287:0]
 @24
 interleaver_tb.dut.block_waddr[5:0]
+@28
+interleaver_tb.dut.m_raddr[1:0]
 @200
 -
 @28
 interleaver_tb.dut.inter_end
 @22
 interleaver_tb.dut.inter_raddr[3:0]
-@a2
-interleaver_tb.dut.inter_bpsk_net[47:0]
-@22
-interleaver_tb.dut.inter_qpsk_net[95:0]
-interleaver_tb.dut.inter_qam16_net[191:0]
-interleaver_tb.dut.inter_qam64_net[287:0]
 @200
 -
 @22
 interleaver_tb.dut.fifo_dout[35:0]
-@23
 interleaver_tb.dut.fifo_raddr[8:0]
-@22
 interleaver_tb.dut.fifo_waddr[8:0]
 @28
 interleaver_tb.dut.fifo_full
 interleaver_tb.dut.fifo_empty
+interleaver_tb.dut.fifo_ren
+@29
+interleaver_tb.dut.fifo_wen
 @200
 -
 @28
+interleaver_tb.dut.m_raddr[1:0]
 interleaver_tb.dut.ctl_state
 [pattern_trace] 1
 [pattern_trace] 0

@@ -20,6 +20,8 @@ module interleaver_tb;
     reg [WIDTH-1:0] data_input [DATA_COUNT-1:0];
     reg [WIDTH-1:0] data_output [DATA_COUNT-1:0];
 
+    reg [WIDTH-1:0] out;
+
     reg clk = 1;
     reg rst;
 
@@ -27,13 +29,11 @@ module interleaver_tb;
     reg [WIDTH/2-1:0] i_tuser;
     reg i_tvalid;
     wire i_tready;
-    reg i_tlast;
 
     wire [WIDTH-1:0] o_tdata;
     wire [WIDTH/2-1:0] o_tuser;
     wire o_tvalid;
     reg o_tready;
-    wire o_tlast;
 
     interleaver dut(
         .aclk(clk),
@@ -42,12 +42,10 @@ module interleaver_tb;
         .s_axis_tvalid(i_tvalid),
         .s_axis_tready(i_tready),
         .s_axis_tuser(i_tuser),
-        .s_axis_tlast(i_tlast),
         .m_axis_tdata(o_tdata),
         .m_axis_tvalid(o_tvalid),
         .m_axis_tuser(o_tuser),
-        .m_axis_tready(o_tready),
-        .m_axis_tlast(o_tlast)
+        .m_axis_tready(o_tready)
     );
 
     always #(CLOCKPERIOD/2) clk <= ~clk;
@@ -62,11 +60,8 @@ module interleaver_tb;
 
     integer i;
     initial begin
-        $display("Start...");
         // Initialize and reset
-        i_tuser = 0;
         i_tvalid = 0;
-        i_tlast = 0;
         o_tready = 0;
         reset();
 
@@ -74,7 +69,34 @@ module interleaver_tb;
         i_tuser = `RATE_36M;
         for (i = 0; i < DATA_COUNT; i = i + 1) begin
             send(data_input[i]);
-            if (o_tdata != data_output[i]) begin
+        end
+
+        #(5*CLOCKPERIOD) o_tready = 1;
+
+        for (i = 0; i < DATA_COUNT; i = i + 1) begin
+            recv(out);
+            if (out != data_output[i]) begin
+                $display("Failed DATA interleaving test %1d.", i);
+                $display("EXP: %b", data_output[i]);
+                $display("GOT: %b", o_tdata);
+                $finish;
+            end
+        end
+
+        #(10*CLOCKPERIOD);
+
+        $display("Starting DATA interleaving test...");
+        o_tready = 0;
+        i_tuser = `RATE_36M;
+        for (i = 0; i < DATA_COUNT; i = i + 1) begin
+            send(data_input[i]);
+        end
+
+        o_tready = 1;
+
+        for (i = 0; i < DATA_COUNT; i = i + 1) begin
+            recv(out);
+            if (out != data_output[i]) begin
                 $display("Failed DATA interleaving test %1d.", i);
                 $display("EXP: %b", data_output[i]);
                 $display("GOT: %b", o_tdata);
@@ -83,6 +105,6 @@ module interleaver_tb;
         end
 
         $display("All tests succeeded.");
-        #(10*CLOCKPERIOD) $finish;
+        $finish;
     end
 endmodule

@@ -24,13 +24,11 @@ module interleaver
      input [3:0] s_axis_tuser,
      input s_axis_tvalid,
      output s_axis_tready,
-     input s_axis_tlast,
 
      output reg [7:0] m_axis_tdata,
-     output reg [3:0] m_axis_tuser,
+     output [3:0] m_axis_tuser,
      output reg m_axis_tvalid,
-     input m_axis_tready,
-     output m_axis_tlast);
+     input m_axis_tready);
 
     // Coded bits per subcarrier
     localparam CBPS_BPSK = 48;
@@ -65,9 +63,7 @@ module interleaver
     reg [8:0] fifo_waddr;
     reg [8:0] fifo_raddr;
     reg [35:0] fifo_dout;
-    reg [1:0] fifo_state;
-    // FIXME
-    wire fifo_ren = m_handshake && ~fifo_empty;
+    wire fifo_ren;
     wire fifo_wen = ctl_state == WRITE && ~fifo_full;
     wire fifo_empty = fifo_raddr == fifo_waddr;
     reg fifo_full;
@@ -76,7 +72,6 @@ module interleaver
     reg [7:0] block [35:0];
     reg [3:0] block_rate;
     reg [5:0] block_waddr;
-    reg [5:0] block_raddr;
     wire [287:0] block_net = {block[35], block[34], block[33], block[32],
                               block[31], block[30], block[29], block[28],
                               block[27], block[26], block[25], block[24],
@@ -101,39 +96,23 @@ module interleaver
                      block_qpsk_end  || block_bpsk_end;
 
     // Interleaving for each block size
-    reg [15:0] inter_bpsk [2:0];
-    reg [31:0] inter_qpsk [2:0];
-    reg [31:0] inter_qam16 [5:0];
-    reg [31:0] inter_qam64 [8:0];
-
-    wire [CBPS_BPSK-1:0] inter_bpsk_net = {inter_bpsk[2], inter_bpsk[1],
-                                           inter_bpsk[0]};
-
-    wire [CBPS_QPSK-1:0] inter_qpsk_net = {inter_qpsk[2], inter_qpsk[1],
-                                           inter_qpsk[0]};
-
-    wire [CBPS_QAM16-1:0] inter_qam16_net = {inter_qam16[5], inter_qam16[4],
-                                             inter_qam16[3], inter_qam16[2],
-                                             inter_qam16[1], inter_qam16[0]};
-
-    wire [CBPS_QAM64-1:0] inter_qam64_net = {inter_qam64[8], inter_qam64[7],
-                                             inter_qam64[6], inter_qam64[5],
-                                             inter_qam64[4], inter_qam64[3],
-                                             inter_qam64[2], inter_qam64[1],
-                                             inter_qam64[0]};
+    wire [CBPS_BPSK-1:0] inter_bpsk;
+    wire [CBPS_QPSK-1:0] inter_qpsk;
+    wire [CBPS_QAM16-1:0] inter_qam16;
+    wire [CBPS_QAM64-1:0] inter_qam64;
 
     genvar j;
     for (j = 0; j < CBPS_BPSK; j = j + 1) begin : gen_bpsk
-        assign inter_bpsk_net[j] = block_net[permute(j, CBPS_BPSK)];
+        assign inter_bpsk[j] = block_net[permute(j, CBPS_BPSK)];
     end
     for (j = 0; j < CBPS_QPSK; j = j + 1) begin : gen_qpsk
-        assign inter_qpsk_net[j] = block_net[permute(j, CBPS_QPSK)];
+        assign inter_qpsk[j] = block_net[permute(j, CBPS_QPSK)];
     end
     for (j = 0; j < CBPS_QAM16; j = j + 1) begin : gen_qam16
-        assign inter_qam16_net[j] = block_net[permute(j, CBPS_QAM16)];
+        assign inter_qam16[j] = block_net[permute(j, CBPS_QAM16)];
     end
     for (j = 0; j < CBPS_QAM64; j = j + 1) begin : gen_qam64
-        assign inter_qam64_net[j] = block_net[permute(j, CBPS_QAM64)];
+        assign inter_qam64[j] = block_net[permute(j, CBPS_QAM64)];
     end
 
     wire inter_bpsk_end = is_bpsk_rate && inter_raddr == 1;
@@ -147,6 +126,10 @@ module interleaver
     // Interleaved data
     reg [31:0] inter [8:0];
     reg [3:0] inter_raddr;
+
+    // Output state
+    reg out_state;
+    reg [1:0] out_raddr;
 
     // Controller state
     reg ctl_state;
@@ -206,23 +189,23 @@ module interleaver
         case (block_rate)
             `RATE_12M, `RATE_18M: begin
                 for (k = 0; k < 3; k = k + 1)
-                    inter[k] = inter_qpsk[k];
+                    inter[k] = inter_qpsk[k*32 +: 32];
                 for (k = 3; k < 9; k = k + 1)
                     inter[k] = {32{1'bx}};
             end
             `RATE_24M, `RATE_36M: begin
                 for (k = 0; k < 6; k = k + 1)
-                    inter[k] = inter_qam16[k];
+                    inter[k] = inter_qam16[k*32 +: 32];
                 for (k = 6; k < 9; k = k + 1)
                     inter[k] = {32{1'bx}};
             end
             `RATE_48M, `RATE_54M: begin
                 for (k = 0; k < 9; k = k + 1)
-                    inter[k] = inter_qam64[k];
+                    inter[k] = inter_qam64[k*32 +: 32];
             end
             default: begin
-                inter[0] = {inter_bpsk[1], inter_bpsk[0]};
-                inter[1] = {{16{1'bx}}, inter_bpsk[2]};
+                inter[0] = inter_bpsk[31:0];
+                inter[1] = {{16{1'bx}}, inter_bpsk[47:32]};
                 for (k = 2; k < 9; k = k + 1)
                     inter[k] = {32{1'bx}};
             end
@@ -254,11 +237,52 @@ module interleaver
             fifo_full <= 1;
 
     // AXI-Stream master interface
+    localparam INIT = 0;
+    localparam NORM = 1;
+
+    assign fifo_ren = (out_state == INIT) ? ~fifo_empty :
+                      (m_handshake && out_raddr == 3 && ~fifo_empty);
+
+    always @*
+        case (out_raddr)
+            0: m_axis_tdata = fifo_dout[7:0];
+            1: m_axis_tdata = fifo_dout[15:8];
+            2: m_axis_tdata = fifo_dout[23:16];
+            3: m_axis_tdata = fifo_dout[31:24];
+        endcase
+
+    assign m_axis_tuser = fifo_dout[35:32];
+
     always @(posedge aclk) begin
         if (~aresetn) begin
+            out_raddr <= 0;
+            out_state <= INIT;
             m_axis_tvalid <= 0;
         end
-        else if (m_handshake) begin
-        end
+        else
+            case (out_state)
+                INIT:
+                    if (~fifo_empty) begin
+                        out_state <= NORM;
+                        m_axis_tvalid <= 1;
+                    end
+                    else begin
+                        out_state <= INIT;
+                        m_axis_tvalid <= 0;
+                    end
+                NORM: begin
+                    out_state <= NORM;
+                    if (m_handshake) begin
+                        out_raddr <= out_raddr + 1;
+                        if (out_raddr == 3 && fifo_empty) begin
+                            m_axis_tvalid <= 0;
+                            out_state <= INIT;
+                        end
+                        else
+                            m_axis_tvalid <= 1;
+                    end
+                end
+            endcase
     end
 endmodule
+
