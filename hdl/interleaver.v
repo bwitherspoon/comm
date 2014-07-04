@@ -82,13 +82,13 @@ module interleaver
                               block[ 7], block[ 6], block[ 5], block[ 4],
                               block[ 3], block[ 2], block[ 1], block[ 0]};
 
-    wire is_bpsk_rate = block_rate == `RATE_6M || block_rate == `RATE_9M;
-    wire is_qpsk_rate = block_rate == `RATE_12M || block_rate == `RATE_18M;
+    wire is_bpsk_rate  = block_rate == `RATE_6M  || block_rate == `RATE_9M;
+    wire is_qpsk_rate  = block_rate == `RATE_12M || block_rate == `RATE_18M;
     wire is_qam16_rate = block_rate == `RATE_24M || block_rate == `RATE_36M;
     wire is_qam64_rate = block_rate == `RATE_48M || block_rate == `RATE_54M;
 
-    wire block_bpsk_end  = is_bpsk_rate && block_waddr == 5;
-    wire block_qpsk_end  = is_qpsk_rate && block_waddr == 12;
+    wire block_bpsk_end  = is_bpsk_rate  && block_waddr == 5;
+    wire block_qpsk_end  = is_qpsk_rate  && block_waddr == 12;
     wire block_qam16_end = is_qam16_rate && block_waddr == 23;
     wire block_qam64_end = is_qam64_rate && block_waddr == 35;
 
@@ -237,11 +237,8 @@ module interleaver
             fifo_full <= 1;
 
     // AXI-Stream master interface
-    localparam INIT = 0;
-    localparam NORM = 1;
-
-    assign fifo_ren = (out_state == INIT) ? ~fifo_empty :
-                      (m_handshake && out_raddr == 3 && ~fifo_empty);
+    localparam INIT = 1'b0;
+    localparam NORM = 1'b1;
 
     always @*
         case (out_raddr)
@@ -271,18 +268,26 @@ module interleaver
                         m_axis_tvalid <= 0;
                     end
                 NORM: begin
-                    out_state <= NORM;
                     if (m_handshake) begin
-                        out_raddr <= out_raddr + 1;
                         if (out_raddr == 3 && fifo_empty) begin
-                            m_axis_tvalid <= 0;
                             out_state <= INIT;
+                            m_axis_tvalid <= 0;
                         end
-                        else
+                        else begin
+                            out_state <= NORM;
                             m_axis_tvalid <= 1;
+                        end
+                        out_raddr <= out_raddr + 1;
+                    end
+                    else begin
+                        out_state <= NORM;
+                        m_axis_tvalid <= m_axis_tvalid;
                     end
                 end
             endcase
     end
+
+    assign fifo_ren = (out_state == INIT) ? ~fifo_empty :
+                      (m_handshake && out_raddr == 3 && ~fifo_empty);
 endmodule
 
