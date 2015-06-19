@@ -34,111 +34,246 @@
  *      +-----+-----+
  */
 module encoder
- #(parameter WIDTH = 24)
-  (input aclk,
-   input aresetn,
+    (input aclk,
+     input aresetn,
 
-   input [WIDTH-1:0] s_axis_tdata,
-   input [3:0] s_axis_tuser,
-   input s_axis_tvalid,
-   output s_axis_tready,
-   input s_axis_tlast,
+     input [WIDTH-1:0] s_axis_tdata,
+     input [3:0] s_axis_tuser,
+     input s_axis_tvalid,
+     output s_axis_tready,
+     input s_axis_tlast,
 
-   output reg [2*WIDTH-1:0] m_axis_tdata,
-   output reg [3:0] m_axis_tuser,
-   output reg m_axis_tvalid,
-   input m_axis_tready,
-   output reg m_axis_tlast);
+     output reg [WIDTH-1:0] m_axis_tdata,
+     output reg [3:0] m_axis_tuser,
+     output reg m_axis_tvalid,
+     input m_axis_tready,
+     output reg m_axis_tlast);
 
-  // Constraint length determined from the generator polynomial
-  localparam HISTSIZE = 6;
+    localparam WIDTH = 8;
+    localparam HISTSIZE = 6;
 
-  // We are ready whenever downstream is ready
-  wire axis_tready_int = m_axis_tready;
-  assign s_axis_tready = axis_tready_int;
+    wire m_handshake = m_axis_tvalid && m_axis_tready;
+    wire s_handshake = s_axis_tvalid && s_axis_tready;
 
-  wire m_handshake = m_axis_tvalid && axis_tready_int;
-  wire s_handshake = s_axis_tvalid && axis_tready_int;
+    wire [WIDTH-1:0] poly [1:0];
+    reg [HISTSIZE-1:0] hist;
 
-  reg [2*WIDTH-1:0] m_axis_tdata_int;
+    // Concatenate data and history as operand for the convolution
+    wire [WIDTH+HISTSIZE-1:0] op = {s_axis_tdata, hist};
 
-  wire [WIDTH-1:0] g0;
-  wire [WIDTH-1:0] g1;
-
-  wire [2*WIDTH-1:0] hr;
-  wire [2*WIDTH-1:0] tfr;
-  wire [2*WIDTH-1:0] ttr;
-
-  reg [HISTSIZE-1:0] history = {HISTSIZE{1'b0}};
-
-  // Concatenate input data with history for the convolution
-  wire [WIDTH+HISTSIZE-1:0] operand = {s_axis_tdata, history};
-
-  genvar i;
-  generate
+    genvar i;
     // For generator polynomials: g0 = 133, g1 = 171
     for (i = 0; i < WIDTH; i = i + 1) begin : gen_poly
-      assign g0[i] = operand[i+6] ^ operand[i+4] ^ operand[i+3] ^ operand[i+1] ^ operand[i];
-      assign g1[i] = g0[i] ^ operand[i+5] ^ operand[i+1];
+      assign poly[0][i] = op[i+6] ^ op[i+4] ^ op[i+3] ^ op[i+1] ^ op[i];
+      assign poly[1][i] = poly[0][i] ^ op[i+5] ^ op[i+1];
     end
-    // No puncturing for the 1/2 rate output
-    for (i = 0; i < 2*WIDTH-1; i = i + 2) begin : gen_half_rate
-      assign hr[i]   = g0[i/2];
-      assign hr[i+1] = g1[i/2];
-    end
-    // Puncturing for the 2/3 rate output
-    for (i = 0; i < 3*WIDTH/2-2; i = i + 3) begin : gen_two_thirds
-      assign ttr[i]   = g0[i/3];
-      assign ttr[i+1] = g1[i/3];
-      assign ttr[i+2] = g0[i/3+1];
-    end
-    // Puncturing for the 3/4 rate output
-    for (i = 0; i < 4*WIDTH/3-3; i = i + 4) begin : gen_three_fourths
-      assign tfr[i]   = g0[i-i/4];
-      assign tfr[i+1] = g1[i-i/4];
-      assign tfr[i+2] = g0[i-i/4+1];
-      assign tfr[i+3] = g1[i-i/4+2];
-    end
-  endgenerate
 
-  // Zero pad two-thirds and three-fourths rate outputs
-  assign ttr[2*WIDTH-1:3*WIDTH/2] = 0;
-  assign tfr[2*WIDTH-1:4*WIDTH/3] = 0;
+    // Data distributed RAM
+    wire [4:0] enc_raddr [1:0];
+    reg [4:0] enc_waddr;
+    wire [15:0] enc;
+    reg dram_full;
+    wire dram_empty = enc_raddr[0] == enc_waddr;
 
-  // Rate mux
-  always @*
-    case (s_axis_tuser)
-      `RATE_9M, `RATE_18M, `RATE_36M, `RATE_54M:
-        m_axis_tdata_int = tfr;
-      `RATE_48M:
-        m_axis_tdata_int = ttr;
-      default:
-        m_axis_tdata_int = hr;
-    endcase
+    // FIXME
+    assign enc_raddr[0] = sel[34:30];
+    assign enc_raddr[1] = sel[29:25];
 
-  // AXI-Stream interface
-  always @(posedge aclk)
-    if (~aresetn) begin
-      m_axis_tdata <= {2*WIDTH{1'b0}};
-      m_axis_tuser <= 4'h0;
-      m_axis_tlast <= 1'b0;
-      m_axis_tvalid <= 1'b0;
-    end
-    else if (s_handshake) begin
-      m_axis_tdata <= m_axis_tdata_int;
-      m_axis_tuser <= s_axis_tuser;
-      m_axis_tlast <= s_axis_tlast;
-      m_axis_tvalid <= 1'b1;
-    end
-    else if (m_handshake)
-      m_axis_tvalid <= 1'b0;
+    encoder_ram enc_ram(
+        .clk(aclk),
+        .we(s_handshake),
+        .din({poly[1], poly[0]}),
+        .waddr(enc_waddr),
+        .raddr0(enc_raddr[0]),
+        .raddr1(enc_raddr[1]),
+        .dout(enc)
+    );
 
-  // History register
-  always @(posedge aclk)
-    if (~aresetn)
-      history <= {HISTSIZE{1'b0}};
-    else if (s_handshake)
-      history <= s_axis_tdata[WIDTH-1:WIDTH-HISTSIZE];
+    always @(posedge aclk)
+        if (m_handshake && ~s_handshake)
+            dram_full <= 0;
+        else if (s_handshake && ~m_handshake && enc_raddr[0] + 3 == enc_waddr)
+            dram_full <= 1;
+    // End data distributed RAM
+
+    // Rate distributed RAM
+    wire [15:0] rate_dout;
+    reg [3:0] rate [31:0];
+
+    always @(posedge aclk)
+        if (s_handshake)
+            rate[enc_waddr] <= s_axis_tuser;
+
+    assign rate_dout = rate[enc_raddr[0]];
+    // End rate distributed RAM
+
+    // TODO
+    always @(posedge aclk)
+        if (~aresetn) begin
+            enc_waddr <= 5'b00000;
+        end
+        else begin
+            if (s_handshake)
+                enc_waddr <= enc_waddr + 1;
+        end
+
+    // Select LUT ROM
+    (* rom_style = "distributed" *) reg [34:0] sel_rom;
+    wire [34:0] sel;
+    reg [6:0] sel_raddr;
+
+    /*
+     *   raddr0  raddr1   sel7    sel6    sel5    sel4   sel3   sel2  sel1  sel0
+     * +-------+-------+-------+-------+-------+-------+------+-----+-----+-----+
+     * | 34:30 | 29:25 | 24:22 | 21:19 | 18:15 | 14:12 | 11:9 | 8:6 | 5:3 | 2:0 |
+     * +-------+-------+-------+-------+-------+-------+------+-----+-----+-----+
+     */
+    always @(posedge aclk)
+        if (m_handshake)
+            case (sel_raddr)
+            // 1/2 rate
+            7'b0000000: sel_rom <= {5'b00000, 5'b00000, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0000001: sel_rom <= {5'b00000, 5'b00000, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0000010: sel_rom <= {5'b00001, 5'b00001, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0000011: sel_rom <= {5'b00001, 5'b00001, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0000100: sel_rom <= {5'b00010, 5'b00010, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0000101: sel_rom <= {5'b00010, 5'b00010, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0000110: sel_rom <= {5'b00011, 5'b00011, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0000111: sel_rom <= {5'b00011, 5'b00011, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0001000: sel_rom <= {5'b00100, 5'b00100, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0001001: sel_rom <= {5'b00100, 5'b00100, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0001010: sel_rom <= {5'b00101, 5'b00101, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0001011: sel_rom <= {5'b00101, 5'b00101, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0001100: sel_rom <= {5'b00110, 5'b00110, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0001101: sel_rom <= {5'b00110, 5'b00110, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0001110: sel_rom <= {5'b00111, 5'b00111, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0001111: sel_rom <= {5'b00111, 5'b00111, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0010000: sel_rom <= {5'b01000, 5'b01000, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0010001: sel_rom <= {5'b01000, 5'b01000, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0010010: sel_rom <= {5'b01001, 5'b01001, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0010011: sel_rom <= {5'b01001, 5'b01001, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0010100: sel_rom <= {5'b01010, 5'b01010, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0010101: sel_rom <= {5'b01010, 5'b01010, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0010110: sel_rom <= {5'b01011, 5'b01011, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0010111: sel_rom <= {5'b01011, 5'b01011, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0011000: sel_rom <= {5'b01100, 5'b01100, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0011001: sel_rom <= {5'b01100, 5'b01100, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0011010: sel_rom <= {5'b01101, 5'b01101, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0011011: sel_rom <= {5'b01101, 5'b01101, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0011100: sel_rom <= {5'b01110, 5'b01110, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0011101: sel_rom <= {5'b01110, 5'b01110, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            7'b0011110: sel_rom <= {5'b01111, 5'b01111, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            7'b0011111: sel_rom <= {5'b01111, 5'b01111, 3'b001, 3'b001, 4'b0001, 3'b001, 3'b001, 3'b001, 3'b001, 3'b001};
+            // TODO 2/3 rate
+            // TODO 3/4 rate
+            default: sel_rom <= {5'b00000, 5'b00000, 3'b000, 3'b000, 4'b0000, 3'b000, 3'b000, 3'b000, 3'b000, 3'b000};
+            endcase
+
+    assign sel = sel_rom;
+
+    // First bit mux
+    always @*
+        case (sel[2:0])
+             3'b000: m_axis_tdata[0] = enc[0];  // poly[0][0]
+             3'b001: m_axis_tdata[0] = enc[4];  // poly[0][4]
+             3'b010: m_axis_tdata[0] = enc[6];  // poly[0][6]
+             3'b011: m_axis_tdata[0] = enc[2];  // poly[0][2]
+             3'b100: m_axis_tdata[0] = enc[5];  // poly[0][5]
+            default: m_axis_tdata[0] = enc[10]; // poly[1][2]
+        endcase
+
+    // Second bit mux
+    always @*
+        case (sel[5:3])
+             3'b000: m_axis_tdata[1] = enc[8];  // poly[1][0]
+             3'b001: m_axis_tdata[1] = enc[12]; // poly[1][4]
+             3'b010: m_axis_tdata[1] = enc[14]; // poly[1][6]
+             3'b011: m_axis_tdata[1] = enc[10]; // poly[1][2]
+             3'b100: m_axis_tdata[1] = enc[6];  // poly[0][6]
+            default: m_axis_tdata[1] = enc[3];  // poly[0][3]
+        endcase
+
+    // Third bit mux
+    always @*
+        case (sel[8:6])
+             3'b000: m_axis_tdata[2] = enc[1];  // poly[0][1]
+             3'b001: m_axis_tdata[2] = enc[5];  // poly[0][5]
+             3'b010: m_axis_tdata[2] = enc[7];  // poly[0][7]
+             3'b011: m_axis_tdata[2] = enc[3];  // poly[0][3]
+             3'b100: m_axis_tdata[2] = enc[14]; // poly[1][6]
+            default: m_axis_tdata[2] = enc[4];  // poly[0][4]
+        endcase
+
+    // Fourth bit mux
+    always @*
+        case (sel[11:9])
+            3'b000: m_axis_tdata[3] = enc[9];  // poly[1][1]
+            3'b001: m_axis_tdata[3] = enc[13]; // poly[1][5]
+            3'b010: m_axis_tdata[3] = enc[14]; // poly[1][6]
+            3'b011: m_axis_tdata[3] = enc[12]; // poly[1][4]
+            3'b100: m_axis_tdata[3] = enc[10]; // poly[1][2]
+            3'b101: m_axis_tdata[3] = enc[8];  // poly[1][0]
+            3'b110: m_axis_tdata[3] = enc[2];  // poly[0][2]
+            3'b111: m_axis_tdata[3] = enc[7];  // poly[0][7]
+        endcase
+
+    // Fifth bit mux
+    always @*
+        case (sel[14:12])
+            3'b000: m_axis_tdata[4] = enc[2];  // poly[0][2]
+            3'b001: m_axis_tdata[4] = enc[6];  // poly[0][6]
+            3'b010: m_axis_tdata[4] = enc[7];  // poly[0][7]
+            3'b011: m_axis_tdata[4] = enc[5];  // poly[0][5]
+            3'b100: m_axis_tdata[4] = enc[3];  // poly[0][3]
+            3'b101: m_axis_tdata[4] = enc[1];  // poly[0][1]
+            3'b110: m_axis_tdata[4] = enc[10]; // poly[1][2]
+            3'b111: m_axis_tdata[4] = enc[0];  // poly[0][0]
+        endcase
+
+    // Sixth bit mux
+    always @*
+        case (sel[18:15])
+            4'b0000: m_axis_tdata[5] = enc[10]; // poly[1][2]
+            4'b0001: m_axis_tdata[5] = enc[14]; // poly[1][6]
+            4'b0010: m_axis_tdata[5] = enc[15]; // poly[1][7]
+            4'b0011: m_axis_tdata[5] = enc[13]; // poly[1][5]
+            4'b0100: m_axis_tdata[5] = enc[11]; // poly[1][3]
+            4'b0101: m_axis_tdata[5] = enc[9];  // poly[1][1]
+            4'b0110: m_axis_tdata[5] = enc[11]; // poly[0][3]
+            4'b0111: m_axis_tdata[5] = enc[8];  // poly[1][0]
+            default: m_axis_tdata[5] = enc[6];  // poly[0][6]
+        endcase
+
+    // Seventh bit mux
+    always @*
+        case (sel[21:19])
+            3'b000: m_axis_tdata[6] = enc[3];  // poly[0][3]
+            3'b001: m_axis_tdata[6] = enc[7];  // poly[0][7]
+            3'b010: m_axis_tdata[6] = enc[0];  // poly[0][0]
+            3'b011: m_axis_tdata[6] = enc[6];  // poly[0][6]
+            3'b100: m_axis_tdata[6] = enc[4];  // poly[0][4]
+            3'b101: m_axis_tdata[6] = enc[2];  // poly[0][2]
+            3'b110: m_axis_tdata[6] = enc[1];  // poly[0][1]
+            3'b111: m_axis_tdata[6] = enc[14]; // poly[1][6]
+        endcase
+
+    // Eighth bit mux
+    always @*
+        case (sel[24:22])
+             3'b000: m_axis_tdata[7] = enc[11]; // poly[1][3]
+             3'b001: m_axis_tdata[7] = enc[15]; // poly[1][7]
+             3'b010: m_axis_tdata[7] = enc[9];  // poly[1][1]
+             3'b011: m_axis_tdata[7] = enc[13]; // poly[1][5]
+             3'b100: m_axis_tdata[7] = enc[12]; // poly[1][4]
+             3'b101: m_axis_tdata[7] = enc[2];  // poly[0][2]
+            default: m_axis_tdata[7] = enc[7];  // poly[0][7]
+        endcase
+
+    // History register
+    always @(posedge aclk)
+        if (~aresetn)
+            hist <= {HISTSIZE{1'b0}};
+        else if (s_handshake)
+            hist <= s_axis_tdata[WIDTH-1:WIDTH-HISTSIZE];
 
 endmodule
-

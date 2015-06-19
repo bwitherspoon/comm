@@ -72,15 +72,7 @@ module interleaver
     reg [7:0] block [35:0];
     reg [3:0] block_rate;
     reg [5:0] block_waddr;
-    wire [287:0] block_net = {block[35], block[34], block[33], block[32],
-                              block[31], block[30], block[29], block[28],
-                              block[27], block[26], block[25], block[24],
-                              block[23], block[22], block[21], block[20],
-                              block[19], block[18], block[17], block[16],
-                              block[15], block[14], block[13], block[12],
-                              block[11], block[10], block[ 9], block[ 8],
-                              block[ 7], block[ 6], block[ 5], block[ 4],
-                              block[ 3], block[ 2], block[ 1], block[ 0]};
+    wire [287:0] block_net;
 
     wire is_bpsk_rate  = block_rate == `RATE_6M  || block_rate == `RATE_9M;
     wire is_qpsk_rate  = block_rate == `RATE_12M || block_rate == `RATE_18M;
@@ -102,6 +94,9 @@ module interleaver
     wire [CBPS_QAM64-1:0] inter_qam64;
 
     genvar j;
+    for (j = 0; j < 36; j = j +1) begin : gen_block
+        assign block_net[j*8 +: 8] = block[j];
+    end
     for (j = 0; j < CBPS_BPSK; j = j + 1) begin : gen_bpsk
         assign inter_bpsk[j] = block_net[permute(j, CBPS_BPSK)];
     end
@@ -114,6 +109,7 @@ module interleaver
     for (j = 0; j < CBPS_QAM64; j = j + 1) begin : gen_qam64
         assign inter_qam64[j] = block_net[permute(j, CBPS_QAM64)];
     end
+
 
     wire inter_bpsk_end = is_bpsk_rate && inter_raddr == 1;
     wire inter_qpsk_end = is_qpsk_rate && inter_raddr == 2;
@@ -137,6 +133,12 @@ module interleaver
     localparam READ = 0;
     localparam WRITE = 1;
 
+    wire block_wen = ctl_state == READ && s_axis_tvalid;
+
+    always @(posedge aclk)
+        if (block_wen)
+            block[block_waddr] <= s_axis_tdata;
+
     // Controller
     always @(posedge aclk)
         if (~aresetn) begin
@@ -148,7 +150,6 @@ module interleaver
             case (ctl_state)
                 READ: begin
                     if (s_axis_tvalid) begin
-                        block[block_waddr] <= s_axis_tdata;
                         if (block_waddr == 0)
                             block_rate <= s_axis_tuser;
                         if (block_end) begin
@@ -249,6 +250,9 @@ module interleaver
         endcase
 
     assign m_axis_tuser = fifo_dout[35:32];
+
+    wire out_bpsk_end = is_bpsk_rate && out_raddr == 1;
+    wire out_end = out_bpsk_end || (~is_bpsk_rate && out_raddr == 3);
 
     always @(posedge aclk) begin
         if (~aresetn) begin
